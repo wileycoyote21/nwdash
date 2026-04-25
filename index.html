@@ -179,10 +179,12 @@ table.pt td:first-child{text-align:left;font-family:'DM Sans',sans-serif;color:v
         <div class="eq-stat"><div class="eq-lbl">Unvested after-tax</div><div class="eq-val pos" id="eq-post">—</div></div>
       </div>
       <div class="vest-micro">Vesting schedule</div>
-      <div class="vest-row"><span class="vest-date">2026 Q4</span><span class="vest-shares">106 shares</span><span class="vest-val" id="v26">—</span></div>
-      <div class="vest-row"><span class="vest-date">2027 Q4</span><span class="vest-shares">106 shares</span><span class="vest-val" id="v27">—</span></div>
-      <div class="vest-row"><span class="vest-date">2028 Q4</span><span class="vest-shares">106 shares</span><span class="vest-val" id="v28">—</span></div>
-      <div class="vest-row"><span class="vest-date">2029 Q4</span><span class="vest-shares">106 shares</span><span class="vest-val" id="v29">—</span></div>
+      <div id="vesting-rows">
+        <div class="vest-row"><span class="vest-date">2026 (Aug + Nov)</span><span class="vest-shares">70 shares</span><span class="vest-val">—</span></div>
+        <div class="vest-row"><span class="vest-date">2027</span><span class="vest-shares">157 shares</span><span class="vest-val">—</span></div>
+        <div class="vest-row"><span class="vest-date">2028</span><span class="vest-shares">157 shares</span><span class="vest-val">—</span></div>
+        <div class="vest-row"><span class="vest-date">2029</span><span class="vest-shares">40 shares</span><span class="vest-val">—</span></div>
+      </div>
     </div>
   </div>
 
@@ -391,11 +393,19 @@ async function loadFromScript(){
       document.getElementById('eq-v').textContent=fmt(toNum(eq.vested_value)||toNum(eq.vested_shares)*p);
       document.getElementById('eq-pre').textContent=fmt(toNum(eq.unvested_pre));
       document.getElementById('eq-post').textContent=fmt(toNum(eq.unvested_post));
-      const vestIds=[['v26',eq.vest_2026],['v27',eq.vest_2027],['v28',eq.vest_2028],['v29',eq.vest_2029]];
-      vestIds.forEach(([id,val])=>{
-        const el=document.getElementById(id);
-        if(el)el.textContent=fmtS(toNum(val));
-      });
+      // Vesting schedule - new structure with label/shares/value objects
+      const vests=[eq.vest_2026,eq.vest_2027,eq.vest_2028,eq.vest_2029];
+      const vestWrap=document.getElementById('vesting-rows');
+      if(vestWrap){
+        vestWrap.innerHTML=vests.map(v=>{
+          const val=toNum(v.value);
+          return \`<div class="vest-row">
+            <span class="vest-date">\${v.label}</span>
+            <span class="vest-shares">\${v.shares} shares</span>
+            <span class="vest-val">\${val?fmtS(val):'—'}</span>
+          </div>\`;
+        }).join('');
+      }
     }
 
     document.getElementById('last-updated').textContent='Live · '+new Date().toLocaleDateString();
@@ -444,7 +454,7 @@ function renderContribTable(rows){
   const table=document.getElementById('contrib-table');
   if(table)table.innerHTML=html;
 }
-const SCRIPT_URL='https://script.google.com/macros/s/AKfycbyC6h0fFWaX59e0Xu4an9AfEesaqvYhxmQWm37rMvI2lWk59y-VLjwI8uQKihSjUAPh/exec';
+const SCRIPT_URL='https://script.google.com/macros/s/AKfycbxG9H5ER37BaqQ66QPl4FDNMilkawFk8aJ39na22_K8xXMfk3D_xEgu24_580vJPCcO/exec';
 document.getElementById('sheet-url').value=SCRIPT_URL;
 loadDemo();updateProj();fetchAMD();
 // Auto-load live data on page open
