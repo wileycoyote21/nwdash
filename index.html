@@ -423,8 +423,25 @@ function renderContribTable(rows){
     {key:'WF Joint Brokerage',label:'WF Brokerage'},
     {key:'eTrade RSU/ESPP',label:'eTrade RSU/ESPP'},
   ];
-  const toNum=v=>parseFloat(String(v).replace(/[$,\s]/g,''))||0;
-  const quarters=[...new Set(rows.map(r=>r['Year']+' '+r['Quarter']))].slice(-4);
+  // Strip currency symbols, dashes, commas
+  const toNum=v=>{
+    const s=String(v).replace(/[$,\s]/g,'').trim();
+    if(s===''||s==='-'||s==='—')return 0;
+    return parseFloat(s)||0;
+  };
+  // Only show quarters that have at least one non-zero value
+  const allQuarters=[...new Set(rows.map(r=>String(r['Year'])+' '+r['Quarter']))];
+  const quarters=allQuarters.filter(q=>{
+    const [yr,qt]=q.split(' ');
+    const match=rows.find(r=>String(r['Year'])===yr&&r['Quarter']===qt);
+    if(!match)return false;
+    return accounts.some(acc=>toNum(match[acc.key])>0);
+  });
+  if(!quarters.length){
+    const table=document.getElementById('contrib-table');
+    if(table)table.innerHTML='<tbody><tr><td colspan="3" style="text-align:center;color:var(--text3);padding:20px;">No contributions logged yet</td></tr></tbody>';
+    return;
+  }
   let html='<thead><tr><th>Account</th>';
   quarters.forEach(q=>{html+='<th>'+q+'</th>';});
   html+='<th>Total</th></tr></thead><tbody>';
@@ -433,7 +450,7 @@ function renderContribTable(rows){
   accounts.forEach(acc=>{
     const vals=quarters.map(q=>{
       const [yr,qt]=q.split(' ');
-      const match=rows.find(r=>String(r['Year'])==yr&&r['Quarter']==qt);
+      const match=rows.find(r=>String(r['Year'])===yr&&r['Quarter']===qt);
       return match?toNum(match[acc.key]):0;
     });
     const rowTotal=vals.reduce((a,b)=>a+b,0);
