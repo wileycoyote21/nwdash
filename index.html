@@ -399,11 +399,7 @@ async function loadFromScript(){
       if(vestWrap){
         vestWrap.innerHTML=vests.map(v=>{
           const val=toNum(v.value);
-          return \`<div class="vest-row">
-            <span class="vest-date">\${v.label}</span>
-            <span class="vest-shares">\${v.shares} shares</span>
-            <span class="vest-val">\${val?fmtS(val):'—'}</span>
-          </div>\`;
+          return '<div class="vest-row"><span class="vest-date">'+v.label+'</span><span class="vest-shares">'+v.shares+' shares</span><span class="vest-val">'+(val?fmtS(val):'—')+'</span></div>';
         }).join('');
       }
     }
