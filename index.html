@@ -331,19 +331,19 @@ table.ct tr.tr td{font-weight:500;color:var(--text);border-top:0.5px solid var(-
   <!-- Scenario tiles -->
   <div class="eq-grid" style="margin-bottom:10px;">
     <div class="eq-stat">
-      <div class="eq-lbl">Total unvested · bear</div>
+      <div class="eq-lbl">Bear total · pre-tax</div>
       <div class="eq-val" id="rsu-bear-total">—</div>
     </div>
     <div class="eq-stat">
-      <div class="eq-lbl">Total unvested · base</div>
+      <div class="eq-lbl">Base total · pre-tax</div>
       <div class="eq-val" id="rsu-base-total">—</div>
     </div>
     <div class="eq-stat">
-      <div class="eq-lbl">Total unvested · bull</div>
+      <div class="eq-lbl">Bull total · pre-tax</div>
       <div class="eq-val" id="rsu-bull-total">—</div>
     </div>
     <div class="eq-stat">
-      <div class="eq-lbl">Base after-tax total</div>
+      <div class="eq-lbl">Base total · after-tax</div>
       <div class="eq-val pos" id="rsu-aftertax-total">—</div>
     </div>
   </div>
@@ -849,7 +849,7 @@ function buildAMDChart(){
     </tr>`;
   });
   document.getElementById('rsu-tbody').innerHTML=html;
-  document.getElementById('rsu-bear-total').textContent=fmtS(bearTot*0.60);
+  document.getElementById('rsu-bear-total').textContent=fmtS(bearTot);
   document.getElementById('rsu-base-total').textContent=fmtS(baseTot);
   document.getElementById('rsu-bull-total').textContent=fmtS(bullTot);
   document.getElementById('rsu-aftertax-total').textContent=fmtS(aftertaxTot);
