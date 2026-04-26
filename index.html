@@ -349,7 +349,7 @@ table.ct tr.tr td{font-weight:500;color:var(--text);border-top:0.5px solid var(-
   </div>
 
   <div style="background:var(--bg2);border-radius:var(--rs);padding:12px 14px;font-size:11px;color:var(--text3);line-height:1.6;">
-    <strong style="color:var(--text2);">How this works:</strong> Exponential regression fitted to 136 monthly AMD price points (Jan 2015 – Apr 2026). Bear = −1 standard deviation. Bull = +1 standard deviation. This is trend extrapolation, not a price target — AMD's actual price at vest will depend on earnings, AI demand, macro conditions, and factors no model can predict. Use this as a planning range, not a guarantee.
+    <strong style="color:var(--text2);">How this works:</strong> Exponential regression fitted to 60 monthly AMD price points (May 2021 – Apr 2026). Bear = −1 standard deviation. Bull = +1 standard deviation. This is trend extrapolation, not a price target — AMD's actual price at vest will depend on earnings, AI demand, macro conditions, and factors no model can predict. Use this as a planning range, not a guarantee.
   </div>
 
 </div>
@@ -556,7 +556,7 @@ function buildBarChart(snaps){
         },
         {
           label:'Forecast',
-          data:forecastData,
+          data:hasForecast?forecastData:Array(allPts.length).fill(null),
           backgroundColor:'rgba(55,138,221,0.18)',
           borderColor:'rgba(55,138,221,0.5)',
           borderWidth:1,
@@ -618,10 +618,10 @@ function calcReturn(){
 /* ── EQUITY ── */
 function updateEquity(eq){
   const p=toNum(eq.amd_price)||285;
-  document.getElementById('amd-px').textContent='$'+parseFloat(p).toFixed(2);
-  document.getElementById('eq-v').textContent=fmt(toNum(eq.vested_value)||118*p);
-  document.getElementById('eq-pre').textContent=fmt(toNum(eq.unvested_pre));
-  document.getElementById('eq-post').textContent=fmt(toNum(eq.unvested_post));
+  const setEl=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  setEl('amd-px','$'+parseFloat(p).toFixed(2));
+  setEl('eq-pre',fmt(toNum(eq.unvested_pre)));
+  setEl('eq-post',fmt(toNum(eq.unvested_post)));
   const vests=[eq.vest_2026,eq.vest_2027,eq.vest_2028,eq.vest_2029];
   const wrap=document.getElementById('vesting-rows');
   if(wrap&&vests[0]&&typeof vests[0]==='object'){
