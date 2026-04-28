@@ -1068,6 +1068,7 @@ function buildURAChart(){
   window._uraForecastPts=forecastPts;
   window._uraReg=reg;
   window._uraBlendedSD=blendedSD;
+  window._uraChartReady=true;
 
   if(uraChartInst)uraChartInst.destroy();
   uraChartInst=new Chart(document.getElementById('uraChart'),{
@@ -1091,7 +1092,9 @@ function buildURAChart(){
     }
   });
 
-  updateURAPanel();
+  // Only call updateURAPanel if Sheet data already loaded
+  // Otherwise processDashboardData will call it after load completes
+  if(window._uraSettings)updateURAPanel();
 }
 
 function updateURAPanel(){
@@ -1249,6 +1252,8 @@ async function loadData(){
         gainEl.textContent=(gain>=0?'+':'')+fmt(gain)+' ('+(gainPct>=0?'+':'')+gainPct.toFixed(1)+'%)';
         gainEl.className='eq-val '+(gain>=0?'pos':'neg');
       }
+      // If chart already built, re-run full panel update with correct settings
+      if(window._uraChartReady)updateURAPanel();
     }
 
     // ── Merge Alpha Vantage price history into hardcoded arrays ──
