@@ -354,43 +354,34 @@ table.ct tr.tr td{font-weight:500;color:var(--text);border-top:0.5px solid var(-
 
   <!-- ── URA ETF SECTION ── -->
   <div class="card" style="margin-top:0;">
-    <div class="card-header">
-      <div class="card-lbl">URA ETF · Global X Uranium</div>
-      <div style="font-size:10px;color:var(--text3);">Exponential regression · Jan 2021–present</div>
-    </div>
 
-    <!-- URA Position inputs -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;" id="ura-inputs">
-      <div class="eq-stat">
-        <div class="eq-lbl">Shares owned</div>
-        <input type="number" id="ura-shares" value="365.51" style="background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--rs);padding:8px 10px;font-family:'DM Mono',monospace;font-size:14px;color:var(--text);width:100%;margin-top:4px;" oninput="updateURAPanel()">
+    <!-- AMD-style header -->
+    <div class="dash-header" style="margin-bottom:14px;padding-bottom:14px;border-bottom:0.5px solid var(--border);">
+      <div>
+        <div class="lbl">URA ETF · Global X Uranium</div>
+        <div class="nw" id="ura-price">—</div>
       </div>
-      <div class="eq-stat">
-        <div class="eq-lbl">Cost basis / share</div>
-        <input type="number" id="ura-basis" value="56.04" step="0.01" style="background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--rs);padding:8px 10px;font-family:'DM Mono',monospace;font-size:14px;color:var(--text);width:100%;margin-top:4px;" oninput="updateURAPanel()">
-      </div>
-      <div class="eq-stat">
-        <div class="eq-lbl">Dividend yield %</div>
-        <input type="number" id="ura-yield" value="3.76" step="0.01" style="background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--rs);padding:8px 10px;font-family:'DM Mono',monospace;font-size:14px;color:var(--text);width:100%;margin-top:4px;" oninput="updateURAPanel()">
-      </div>
-      <div class="eq-stat" style="display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:8px;">
-        <div class="eq-lbl">Dividend reinvestment (DRIP)</div>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
-          <input type="checkbox" id="ura-drip" checked onchange="updateURAPanel()" style="width:16px;height:16px;accent-color:var(--blue);">
-          <span style="font-size:12px;color:var(--text2);">Auto-reinvest dividends</span>
-        </label>
+      <div>
+        <div class="amd-price" id="ura-cagr-badge" style="text-align:right;"></div>
+        <div class="amd-sub">Exponential regression · Jan 2021–present</div>
       </div>
     </div>
 
-    <!-- URA position summary tiles -->
+    <!-- Hidden inputs for JS logic — values populated from Sheet -->
+    <input type="hidden" id="ura-shares" value="365.51">
+    <input type="hidden" id="ura-basis" value="56.04">
+    <input type="hidden" id="ura-yield" value="4.4">
+    <input type="hidden" id="ura-drip" data-checked="true">
+
+    <!-- Position summary tiles -->
     <div class="eq-grid" style="margin-bottom:14px;">
-      <div class="eq-stat"><div class="eq-lbl">Current price</div><div class="eq-val" id="ura-price">—</div></div>
       <div class="eq-stat"><div class="eq-lbl">Current value</div><div class="eq-val" id="ura-value">—</div></div>
       <div class="eq-stat"><div class="eq-lbl">Total cost</div><div class="eq-val" id="ura-cost">—</div></div>
       <div class="eq-stat"><div class="eq-lbl">Unrealized gain</div><div class="eq-val" id="ura-gain">—</div></div>
+      <div class="eq-stat"><div class="eq-lbl">Dividend yield</div><div class="eq-val" id="ura-yield-display">4.4%</div></div>
     </div>
 
-    <!-- URA chart -->
+<!-- URA chart -->
     <div class="legend" style="margin-bottom:8px;">
       <div class="li"><div class="ls" style="background:#B4B2A9;height:2px;"></div>Historical</div>
       <div class="li"><div class="ls" style="background:#1D9E75;height:2px;"></div>Base forecast</div>
@@ -411,7 +402,7 @@ table.ct tr.tr td{font-weight:500;color:var(--text);border-top:0.5px solid var(-
             <th>Base price</th>
             <th>Bull price</th>
             <th>Base value</th>
-            <th id="ura-drip-col-header">Annual dividend</th>
+            <th>Shares w/ DRIP</th>
           </tr>
         </thead>
         <tbody id="ura-proj-tbody">
@@ -757,6 +748,8 @@ function updateEquity(eq){
     const gain=value-cost;
     const gainPct=(gain/cost)*100;
     setEl('ura-value',fmt(value));
+  const yieldDisplayEl=document.getElementById('ura-yield-display');
+  if(yieldDisplayEl)yieldDisplayEl.textContent=((parseFloat(document.getElementById('ura-yield')?.value)||4.4)).toFixed(2)+'%';
     setEl('ura-cost',fmt(cost));
     const gainEl=document.getElementById('ura-gain');
     if(gainEl){
@@ -1034,8 +1027,11 @@ function buildURAChart(){
   if(uraChartBuilt)return;
   uraChartBuilt=true;
 
-  const reg=amdExpRegression(URA_HISTORY); // reuse same regression fn
-  const blendedSD=reg.stdDev*0.5; // tighter band for ETF
+  const reg=amdExpRegression(URA_HISTORY);
+  const blendedSD=reg.stdDev*0.5;
+  const uraCAGR=(Math.exp(reg.b*12)-1)*100;
+  const cgrEl=document.getElementById('ura-cagr-badge');
+  if(cgrEl)cgrEl.textContent=uraCAGR.toFixed(1)+'% CAGR';
 
   // URA price via GOOGLEFINANCE in Google Sheet (equity tab B6)
   // updateEquity() sets window._uraLivePrice when Sheet data loads
@@ -1099,22 +1095,20 @@ function buildURAChart(){
 }
 
 function updateURAPanel(){
-  // Save user inputs so they persist across tab switches
+  // Pull settings from Sheet data (window._uraSettings) — single source of truth
+  const settings=window._uraSettings||{shares:365.51,basis:56.04,divYield:4.4};
   const sharesEl=document.getElementById('ura-shares');
   const basisEl=document.getElementById('ura-basis');
   const yieldEl=document.getElementById('ura-yield');
   const dripEl=document.getElementById('ura-drip');
-  // Restore saved values if inputs were reset
-  if(window._uraUserInputs){
-    if(sharesEl&&sharesEl.value==365.51)sharesEl.value=window._uraUserInputs.shares;
-    if(basisEl&&basisEl.value==56.04)basisEl.value=window._uraUserInputs.basis;
-    if(yieldEl&&yieldEl.value==3.76)yieldEl.value=window._uraUserInputs.divYield;
-  }
-  const shares=parseFloat(sharesEl?.value)||365.51;
-  const basis=parseFloat(basisEl?.value)||56.04;
-  const divYield=(parseFloat(yieldEl?.value)||3.76)/100;
-  const drip=dripEl?.checked!==false;
-  // Save current values
+  // Populate inputs from Sheet settings
+  if(sharesEl&&!sharesEl._userEdited)sharesEl.value=settings.shares;
+  if(basisEl&&!basisEl._userEdited)basisEl.value=settings.basis;
+  if(yieldEl&&!yieldEl._userEdited)yieldEl.value=settings.divYield;
+  const shares=parseFloat(sharesEl?.value)||settings.shares;
+  const basis=parseFloat(basisEl?.value)||settings.basis;
+  const divYield=(parseFloat(yieldEl?.value)||settings.divYield)/100;
+  const drip=true; // DRIP always on
   window._uraUserInputs={shares,basis,divYield:divYield*100};
   const livePrice=window._uraLivePrice||56.16;
 
@@ -1136,8 +1130,6 @@ function updateURAPanel(){
   // Build projection table
   if(!window._uraForecastPts)return;
   const years=[2027,2028,2029,2030];
-  const colHeader=document.getElementById('ura-drip-col-header');
-  if(colHeader)colHeader.textContent=drip?'Shares w/ DRIP':'Annual dividend';
 
   let html='';
   let currentShares=shares;
@@ -1171,6 +1163,25 @@ function updateURAPanel(){
   });
   const tbody=document.getElementById('ura-proj-tbody');
   if(tbody)tbody.innerHTML=html;
+}
+
+/* ── MERGE ALPHA VANTAGE PRICES INTO HARDCODED HISTORY ── */
+function mergePriceHistory(baseArray, newPoints){
+  // newPoints = [{d:"2024-01-01",p:123.45}, ...]
+  // Add any dates not already in baseArray
+  const existingDates=new Set(baseArray.map(h=>h.d));
+  newPoints.forEach(pt=>{
+    if(!existingDates.has(pt.d)&&pt.p>0){
+      baseArray.push({d:pt.d,p:pt.p});
+      existingDates.add(pt.d);
+    } else if(existingDates.has(pt.d)){
+      // Update existing point with fresh adjusted close
+      const idx=baseArray.findIndex(h=>h.d===pt.d);
+      if(idx!==-1)baseArray[idx].p=pt.p;
+    }
+  });
+  // Keep sorted chronologically
+  baseArray.sort((a,b)=>a.d.localeCompare(b.d));
 }
 
 /* ── LOAD DATA ── */
@@ -1216,6 +1227,29 @@ async function loadData(){
     buildBarChart(snaps);
 
     if(data.equity)updateEquity(data.equity);
+    if(data.ura_settings){
+      window._uraSettings={
+        shares:parseFloat(data.ura_settings.shares)||365.51,
+        basis:parseFloat(data.ura_settings.basis)||56.04,
+        divYield:parseFloat(data.ura_settings.div_yield)||4.4
+      };
+      const sharesEl=document.getElementById('ura-shares');
+      const basisEl=document.getElementById('ura-basis');
+      const yieldEl=document.getElementById('ura-yield');
+      if(sharesEl)sharesEl.value=window._uraSettings.shares;
+      if(basisEl)basisEl.value=window._uraSettings.basis;
+      if(yieldEl)yieldEl.value=window._uraSettings.divYield;
+    }
+
+    // ── Merge Alpha Vantage price history into hardcoded arrays ──
+    if(data.amd_prices&&data.amd_prices.length){
+      mergePriceHistory(AMD_HISTORY, data.amd_prices);
+      amdChartBuilt=false; // force rebuild with updated data
+    }
+    if(data.ura_prices&&data.ura_prices.length){
+      mergePriceHistory(URA_HISTORY, data.ura_prices);
+      uraChartBuilt=false; // force rebuild with updated data
+    }
 
     document.getElementById('status-txt').textContent='Live · '+snaps.length+' entries · updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   }catch(e){
