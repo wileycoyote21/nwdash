@@ -526,7 +526,7 @@ function switchTab(tab){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
   if(tab==='entry')prefillForm();
-  if(tab==='amd'){buildAMDChart();buildURAChart();}
+  if(tab==='amd'){buildAMDChart();buildURAChart();if(window._uraDataReady)renderURAPanel();}
 }
 
 /* ══════════════════════════════════════
@@ -756,10 +756,8 @@ function updateEquity(eq){
       gainEl.textContent=(gain>=0?'+':'')+fmt(gain)+' ('+(gainPct>=0?'+':'')+gainPct.toFixed(1)+'%)';
       gainEl.className='eq-val '+(gain>=0?'pos':'neg');
     }
-    updateURAPanel();
+    renderURAPanel();
   }
-  // Trigger URA panel refresh now that live price is set
-  if(window._uraChartReady&&window._uraSettings)updateURAPanel();
   const vests=[eq.vest_2026,eq.vest_2027,eq.vest_2028,eq.vest_2029];
   const wrap=document.getElementById('vesting-rows');
   if(wrap&&vests[0]&&typeof vests[0]==='object'){
@@ -1041,7 +1039,7 @@ function buildURAChart(){
     window._uraLivePrice=56.16;
     const priceEl=document.getElementById('ura-price');
     if(priceEl)priceEl.textContent='$56.16';
-    updateURAPanel();
+    renderURAPanel();
   }
 
   // Build forecast to 2030
@@ -1094,9 +1092,8 @@ function buildURAChart(){
     }
   });
 
-  // Only call updateURAPanel if Sheet data already loaded
-  // Otherwise processDashboardData will call it after load completes
-  if(window._uraSettings)updateURAPanel();
+  // Try to render now — will no-op if Sheet data not loaded yet
+  renderURAPanel();
 }
 
 function updateURAPanel(){
@@ -1182,6 +1179,62 @@ function mergePriceHistory(baseArray, newPoints){
   baseArray.sort((a,b)=>a.d.localeCompare(b.d));
 }
 
+/* ── URA PANEL RENDERER — single entry point, all deps guaranteed ── */
+function renderURAPanel(){
+  // Pull everything from guaranteed sources
+  const settings=window._uraSettings;
+  if(!settings){return;} // Sheet data not loaded yet — will be called again
+  
+  const shares=parseFloat(settings.shares)||365.51;
+  const basis=parseFloat(settings.basis)||56.04;
+  const divYield=parseFloat(settings.divYield)/100||0.044;
+  const livePrice=parseFloat(window._uraLivePrice)||56.16;
+  
+  // Set data ready flag
+  window._uraDataReady=true;
+
+  // Position tiles
+  const cost=shares*basis;
+  const value=shares*livePrice;
+  const gain=value-cost;
+  const gainPct=(gain/cost)*100;
+  const setEl=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  setEl('ura-price','$'+livePrice.toFixed(2));
+  setEl('ura-value',fmt(value));
+  setEl('ura-cost',fmt(cost));
+  setEl('ura-yield-display',(divYield*100).toFixed(2)+'%');
+  const gainEl=document.getElementById('ura-gain');
+  if(gainEl){
+    gainEl.textContent=(gain>=0?'+':'')+fmt(gain)+' ('+(gainPct>=0?'+':'')+gainPct.toFixed(1)+'%)';
+    gainEl.className='eq-val '+(gain>=0?'pos':'neg');
+  }
+
+  // Projection table — needs forecast points
+  if(!window._uraForecastPts||!window._uraForecastPts.length)return;
+  const years=[2027,2028,2029,2030];
+  let html='';
+  let currentShares=shares;
+  years.forEach(yr=>{
+    const pt=window._uraForecastPts.find(p=>p.d.startsWith(yr+'-12'))||
+             window._uraForecastPts[window._uraForecastPts.length-1];
+    if(!pt)return;
+    // DRIP always on — reinvest dividends
+    const annualDivPerShare=pt.base*divYield;
+    currentShares+=annualDivPerShare>0?(currentShares*annualDivPerShare)/pt.base:0;
+    const baseVal=currentShares*pt.base;
+    html+=`<tr>
+      <td>${yr}</td>
+      <td>$${pt.bear.toFixed(0)}</td>
+      <td>$${pt.base.toFixed(0)}</td>
+      <td>$${pt.bull.toFixed(0)}</td>
+      <td>${fmtS(baseVal)}</td>
+      <td>${fmtS(currentShares)} shares</td>
+    </tr>`;
+  });
+  const tbody=document.getElementById('ura-proj-tbody');
+  if(tbody)tbody.innerHTML=html||'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:12px;">No forecast data yet</td></tr>';
+}
+
 /* ── LOAD DATA ── */
 async function loadData(){
   try{
@@ -1265,8 +1318,8 @@ async function loadData(){
       mergePriceHistory(URA_HISTORY, data.ura_prices);
       uraChartBuilt=false; // force rebuild with updated data
     }
-    // Always call updateURAPanel at end of data load — all dependencies guaranteed set
-    if(window._uraChartReady)updateURAPanel();
+    // Render URA panel after all data loaded
+    renderURAPanel();
 
     document.getElementById('status-txt').textContent='Live · '+snaps.length+' entries · updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   }catch(e){
