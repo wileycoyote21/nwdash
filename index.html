@@ -758,6 +758,8 @@ function updateEquity(eq){
     }
     updateURAPanel();
   }
+  // Trigger URA panel refresh now that live price is set
+  if(window._uraChartReady&&window._uraSettings)updateURAPanel();
   const vests=[eq.vest_2026,eq.vest_2027,eq.vest_2028,eq.vest_2029];
   const wrap=document.getElementById('vesting-rows');
   if(wrap&&vests[0]&&typeof vests[0]==='object'){
@@ -1252,8 +1254,6 @@ async function loadData(){
         gainEl.textContent=(gain>=0?'+':'')+fmt(gain)+' ('+(gainPct>=0?'+':'')+gainPct.toFixed(1)+'%)';
         gainEl.className='eq-val '+(gain>=0?'pos':'neg');
       }
-      // If chart already built, re-run full panel update with correct settings
-      if(window._uraChartReady)updateURAPanel();
     }
 
     // ── Merge Alpha Vantage price history into hardcoded arrays ──
@@ -1265,6 +1265,8 @@ async function loadData(){
       mergePriceHistory(URA_HISTORY, data.ura_prices);
       uraChartBuilt=false; // force rebuild with updated data
     }
+    // Always call updateURAPanel at end of data load — all dependencies guaranteed set
+    if(window._uraChartReady)updateURAPanel();
 
     document.getElementById('status-txt').textContent='Live · '+snaps.length+' entries · updated '+new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
   }catch(e){
