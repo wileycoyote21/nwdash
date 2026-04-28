@@ -735,29 +735,7 @@ function updateEquity(eq){
   setEl('amd-px','$'+parseFloat(p).toFixed(2));
   setEl('eq-pre',fmt(toNum(eq.unvested_pre)));
   setEl('eq-post',fmt(toNum(eq.unvested_post)));
-  // Set URA live price from GOOGLEFINANCE via Sheet
-  if(eq.ura_price&&toNum(eq.ura_price)>0){
-    const newPrice=toNum(eq.ura_price);
-    window._uraLivePrice=newPrice;
-    setEl('ura-price','$'+parseFloat(newPrice).toFixed(2));
-    // Update position tiles directly
-    const sharesVal=window._uraUserInputs?window._uraUserInputs.shares:365.51;
-    const basisVal=window._uraUserInputs?window._uraUserInputs.basis:56.04;
-    const cost=sharesVal*basisVal;
-    const value=sharesVal*newPrice;
-    const gain=value-cost;
-    const gainPct=(gain/cost)*100;
-    setEl('ura-value',fmt(value));
-  const yieldDisplayEl=document.getElementById('ura-yield-display');
-  if(yieldDisplayEl)yieldDisplayEl.textContent=((parseFloat(document.getElementById('ura-yield')?.value)||4.4)).toFixed(2)+'%';
-    setEl('ura-cost',fmt(cost));
-    const gainEl=document.getElementById('ura-gain');
-    if(gainEl){
-      gainEl.textContent=(gain>=0?'+':'')+fmt(gain)+' ('+(gainPct>=0?'+':'')+gainPct.toFixed(1)+'%)';
-      gainEl.className='eq-val '+(gain>=0?'pos':'neg');
-    }
-    renderURAPanel();
-  }
+  // URA price handled in processDashboardData via _uraSheet
   const vests=[eq.vest_2026,eq.vest_2027,eq.vest_2028,eq.vest_2029];
   const wrap=document.getElementById('vesting-rows');
   if(wrap&&vests[0]&&typeof vests[0]==='object'){
@@ -1179,38 +1157,41 @@ function mergePriceHistory(baseArray, newPoints){
   baseArray.sort((a,b)=>a.d.localeCompare(b.d));
 }
 
-/* ── URA PANEL RENDERER — single entry point, all deps guaranteed ── */
+/* ── URA PANEL RENDERER ── */
 function renderURAPanel(){
-  // Pull everything from guaranteed sources
-  const settings=window._uraSettings;
-  if(!settings){return;} // Sheet data not loaded yet — will be called again
+  // All values come directly from the single Apps Script response
+  // No race conditions — only called after processDashboardData completes
+  const s=window._uraSheet;
+  if(!s)return; // wait for Sheet data
   
-  const shares=parseFloat(settings.shares)||365.51;
-  const basis=parseFloat(settings.basis)||56.04;
-  const divYield=parseFloat(settings.divYield)/100||0.044;
-  const livePrice=parseFloat(window._uraLivePrice)||56.16;
-  
-  // Set data ready flag
-  window._uraDataReady=true;
+  const shares=s.shares;       // B1 from ura_settings
+  const basis=s.basis;         // B2 from ura_settings
+  const livePrice=s.uraPrice;  // B6 from equity (GOOGLEFINANCE)
+  const divYield=s.divYield/100; // B3 from ura_settings
 
-  // Position tiles
   const cost=shares*basis;
   const value=shares*livePrice;
   const gain=value-cost;
   const gainPct=(gain/cost)*100;
+
   const setEl=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
   setEl('ura-price','$'+livePrice.toFixed(2));
   setEl('ura-value',fmt(value));
   setEl('ura-cost',fmt(cost));
-  setEl('ura-yield-display',(divYield*100).toFixed(2)+'%');
+  setEl('ura-yield-display',s.divYield.toFixed(2)+'%');
+
   const gainEl=document.getElementById('ura-gain');
   if(gainEl){
     gainEl.textContent=(gain>=0?'+':'')+fmt(gain)+' ('+(gainPct>=0?'+':'')+gainPct.toFixed(1)+'%)';
     gainEl.className='eq-val '+(gain>=0?'pos':'neg');
   }
 
-  // Projection table — needs forecast points
-  if(!window._uraForecastPts||!window._uraForecastPts.length)return;
+  // Projection table
+  if(!window._uraForecastPts||!window._uraForecastPts.length){
+    const tbody=document.getElementById('ura-proj-tbody');
+    if(tbody)tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:12px;">Building forecast...</td></tr>';
+    return;
+  }
   const years=[2027,2028,2029,2030];
   let html='';
   let currentShares=shares;
@@ -1218,9 +1199,7 @@ function renderURAPanel(){
     const pt=window._uraForecastPts.find(p=>p.d.startsWith(yr+'-12'))||
              window._uraForecastPts[window._uraForecastPts.length-1];
     if(!pt)return;
-    // DRIP always on — reinvest dividends
-    const annualDivPerShare=pt.base*divYield;
-    currentShares+=annualDivPerShare>0?(currentShares*annualDivPerShare)/pt.base:0;
+    currentShares+=currentShares*divYield; // DRIP: reinvest yield as new shares
     const baseVal=currentShares*pt.base;
     html+=`<tr>
       <td>${yr}</td>
@@ -1232,7 +1211,8 @@ function renderURAPanel(){
     </tr>`;
   });
   const tbody=document.getElementById('ura-proj-tbody');
-  if(tbody)tbody.innerHTML=html||'<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:12px;">No forecast data yet</td></tr>';
+  if(tbody)tbody.innerHTML=html;
+  window._uraDataReady=true;
 }
 
 /* ── LOAD DATA ── */
@@ -1278,35 +1258,16 @@ async function loadData(){
     buildBarChart(snaps);
 
     if(data.equity)updateEquity(data.equity);
-    if(data.ura_settings){
-      const uraShares=parseFloat(data.ura_settings.shares)||365.51;
-      const uraBasis=parseFloat(data.ura_settings.basis)||56.04;
-      const uraDivYield=parseFloat(data.ura_settings.div_yield)||4.4;
-      window._uraSettings={shares:uraShares,basis:uraBasis,divYield:uraDivYield};
-      // Set hidden inputs immediately so updateURAPanel reads correct values
-      const sharesEl=document.getElementById('ura-shares');
-      const basisEl=document.getElementById('ura-basis');
-      const yieldEl=document.getElementById('ura-yield');
-      if(sharesEl)sharesEl.value=uraShares;
-      if(basisEl)basisEl.value=uraBasis;
-      if(yieldEl)yieldEl.value=uraDivYield;
-      // Update yield display tile
-      const yieldDisplayEl=document.getElementById('ura-yield-display');
-      if(yieldDisplayEl)yieldDisplayEl.textContent=uraDivYield.toFixed(2)+'%';
-      // Recalculate position tiles with correct values
-      const livePrice=window._uraLivePrice||56.16;
-      const cost=uraShares*uraBasis;
-      const value=uraShares*livePrice;
-      const gain=value-cost;
-      const gainPct=(gain/cost)*100;
-      const setEl=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
-      setEl('ura-value',fmt(value));
-      setEl('ura-cost',fmt(cost));
-      const gainEl=document.getElementById('ura-gain');
-      if(gainEl){
-        gainEl.textContent=(gain>=0?'+':'')+fmt(gain)+' ('+(gainPct>=0?'+':'')+gainPct.toFixed(1)+'%)';
-        gainEl.className='eq-val '+(gain>=0?'pos':'neg');
-      }
+    // Assemble all URA data into one object — used by renderURAPanel
+    if(data.ura_settings&&data.equity){
+      window._uraSheet={
+        shares:  parseFloat(data.ura_settings.shares)||365.51,
+        basis:   parseFloat(data.ura_settings.basis)||56.04,
+        divYield:parseFloat(data.ura_settings.div_yield)||4.4,
+        uraPrice:parseFloat(data.equity.ura_price)||56.16,
+      };
+      window._uraSettings=window._uraSheet; // keep compat reference
+      window._uraLivePrice=window._uraSheet.uraPrice;
     }
 
     // ── Merge Alpha Vantage price history into hardcoded arrays ──
