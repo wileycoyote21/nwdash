@@ -158,7 +158,7 @@ table.ct tr.tr td{font-weight:500;color:var(--text);border-top:0.5px solid var(-
 
 <div class="tab-nav">
   <button class="tab-btn active" onclick="switchTab('dashboard')">Dashboard</button>
-  <button class="tab-btn" onclick="switchTab('amd')">AMD Forecast</button>
+  <button class="tab-btn" onclick="switchTab('amd')">Equity & ETF Forecast</button>
   <button class="tab-btn" onclick="switchTab('entry')">Update</button>
 </div>
 
@@ -279,7 +279,7 @@ table.ct tr.tr td{font-weight:500;color:var(--text);border-top:0.5px solid var(-
 
   <div class="dash-header">
     <div>
-      <div class="lbl">AMD stock forecast</div>
+      <div class="lbl">Equity &amp; ETF forecast</div>
       <div class="nw" id="amd-current-price">Loading...</div>
     </div>
     <div>
@@ -352,6 +352,80 @@ table.ct tr.tr td{font-weight:500;color:var(--text);border-top:0.5px solid var(-
     <strong style="color:var(--text2);">How this works:</strong> Exponential regression fitted to 60 monthly AMD price points (May 2021 – Apr 2026). Bear = −1 standard deviation. Bull = +1 standard deviation. This is trend extrapolation, not a price target — AMD's actual price at vest will depend on earnings, AI demand, macro conditions, and factors no model can predict. Use this as a planning range, not a guarantee.
   </div>
 
+  <!-- ── URA ETF SECTION ── -->
+  <div class="card" style="margin-top:0;">
+    <div class="card-header">
+      <div class="card-lbl">URA ETF · Global X Uranium</div>
+      <div style="font-size:10px;color:var(--text3);">Exponential regression · Jan 2021–present</div>
+    </div>
+
+    <!-- URA Position inputs -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;" id="ura-inputs">
+      <div class="eq-stat">
+        <div class="eq-lbl">Shares owned</div>
+        <input type="number" id="ura-shares" value="653" style="background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--rs);padding:8px 10px;font-family:'DM Mono',monospace;font-size:14px;color:var(--text);width:100%;margin-top:4px;" oninput="updateURAPanel()">
+      </div>
+      <div class="eq-stat">
+        <div class="eq-lbl">Cost basis / share</div>
+        <input type="number" id="ura-basis" value="33.10" step="0.01" style="background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--rs);padding:8px 10px;font-family:'DM Mono',monospace;font-size:14px;color:var(--text);width:100%;margin-top:4px;" oninput="updateURAPanel()">
+      </div>
+      <div class="eq-stat">
+        <div class="eq-lbl">Dividend yield %</div>
+        <input type="number" id="ura-yield" value="3.76" step="0.01" style="background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--rs);padding:8px 10px;font-family:'DM Mono',monospace;font-size:14px;color:var(--text);width:100%;margin-top:4px;" oninput="updateURAPanel()">
+      </div>
+      <div class="eq-stat" style="display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:8px;">
+        <div class="eq-lbl">Dividend reinvestment (DRIP)</div>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="ura-drip" checked onchange="updateURAPanel()" style="width:16px;height:16px;accent-color:var(--blue);">
+          <span style="font-size:12px;color:var(--text2);">Auto-reinvest dividends</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- URA position summary tiles -->
+    <div class="eq-grid" style="margin-bottom:14px;">
+      <div class="eq-stat"><div class="eq-lbl">Current price</div><div class="eq-val" id="ura-price">—</div></div>
+      <div class="eq-stat"><div class="eq-lbl">Current value</div><div class="eq-val" id="ura-value">—</div></div>
+      <div class="eq-stat"><div class="eq-lbl">Total cost</div><div class="eq-val" id="ura-cost">—</div></div>
+      <div class="eq-stat"><div class="eq-lbl">Unrealized gain</div><div class="eq-val" id="ura-gain">—</div></div>
+    </div>
+
+    <!-- URA chart -->
+    <div class="legend" style="margin-bottom:8px;">
+      <div class="li"><div class="ls" style="background:#B4B2A9;height:2px;"></div>Historical</div>
+      <div class="li"><div class="ls" style="background:#1D9E75;height:2px;"></div>Base forecast</div>
+      <div class="li"><div class="ls-sq" style="background:rgba(29,158,117,0.12);"></div>Bear/bull range</div>
+    </div>
+    <div style="position:relative;width:100%;height:200px;margin-bottom:14px;">
+      <canvas id="uraChart" role="img" aria-label="URA ETF price history and forecast">URA forecast chart</canvas>
+    </div>
+
+    <!-- URA projection table -->
+    <div class="card-lbl" style="margin-bottom:8px;">Position value projection</div>
+    <div class="ct-wrap">
+      <table class="ct" id="ura-proj-table">
+        <thead>
+          <tr>
+            <th style="text-align:left;">Year</th>
+            <th>Bear price</th>
+            <th>Base price</th>
+            <th>Bull price</th>
+            <th>Base value</th>
+            <th id="ura-drip-col-header">Annual dividend</th>
+          </tr>
+        </thead>
+        <tbody id="ura-proj-tbody">
+          <tr><td colspan="6" style="text-align:center;padding:16px;color:var(--text3);">Calculating...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="background:var(--bg2);border-radius:var(--rs);padding:12px 14px;font-size:11px;color:var(--text3);line-height:1.6;margin-top:12px;">
+      <strong style="color:var(--text2);">About URA:</strong> Global X Uranium ETF tracks uranium mining companies globally. 14.6% CAGR since Jan 2021 across the uranium supercycle. Bear/bull bands use 0.5 SD (tightened vs single stock) since ETF diversification reduces individual company risk. DRIP projection assumes dividends reinvested at base forecast price each year.
+    </div>
+  </div>
+
+
 </div>
 </div>
 
@@ -422,6 +496,11 @@ table.ct tr.tr td{font-weight:500;color:var(--text);border-top:0.5px solid var(-
         <label>eTrade (Vested RSUs)</label>
         <input type="number" id="f-etrade" placeholder="0" oninput="updateFormTotal()">
       </div>
+      <div class="field">
+        <label>URA ETF</label>
+        <input type="number" id="f-ura" placeholder="0" oninput="updateFormTotal()">
+        <span class="field-sub">Wealthfront · uranium/nuclear</span>
+      </div>
     </div>
   </div>
 
@@ -456,7 +535,7 @@ function switchTab(tab){
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
   if(tab==='entry')prefillForm();
-  if(tab==='amd')buildAMDChart();
+  if(tab==='amd'){buildAMDChart();buildURAChart();}
 }
 
 /* ══════════════════════════════════════
@@ -504,20 +583,19 @@ function forecastPoints(reg,snaps,weeksAhead){
   return points;
 }
 
-/* ── BUILD BAR CHART ── */
+/* ── BUILD STACKED BAR CHART ── */
 function buildBarChart(snaps){
   if(barInst)barInst.destroy();
 
   const n=snaps.length;
   const hasForecast=n>=FORECAST_UNLOCK;
 
-  // Forecast
+  // Forecast using total NW regression
   let forecastPts=[];
   let reg=null;
   if(hasForecast){
     reg=expRegression(snaps);
     if(reg){
-      // Forecast further out the more data we have
       const weeksAhead=n>=FORECAST_FULL?52:Math.round(12+(n-FORECAST_UNLOCK)/(FORECAST_FULL-FORECAST_UNLOCK)*40);
       forecastPts=forecastPoints(reg,snaps,weeksAhead);
     }
@@ -525,21 +603,18 @@ function buildBarChart(snaps){
 
   const allPts=[...snaps,...forecastPts];
   const labels=allPts.map(p=>p.date);
-  const actualData=allPts.map(p=>p.forecast?null:p.total);
+
+  // Stacked actual data — three layers
+  const cashData=allPts.map(p=>p.forecast?null:(p.wf_cash||0)+(p.cap1||0));
+  const taxData=allPts.map(p=>p.forecast?null:(p.wf_ira||0)+(p.roth||0)+(p.k401||0));
+  const brokData=allPts.map(p=>p.forecast?null:(p.wf_brok||0)+(p.etrade||0)+(p.ura||0));
+
+  // Forecast dataset (total, semi-transparent)
   const forecastData=allPts.map((p,i)=>{
-    if(!p.forecast&&i<snaps.length-1)return null;
-    if(i===snaps.length-1)return p.total; // connect at last actual
+    if(i===snaps.length-1)return p.total;
     if(p.forecast)return p.total;
     return null;
   });
-
-  // Bar colors: green if up, red if down, blue for first
-  const actualColors=snaps.map((s,i)=>{
-    if(i===0)return'rgba(55,138,221,0.6)';
-    return s.total>=(snaps[i-1]?.total||0)?'rgba(29,158,117,0.7)':'rgba(216,90,48,0.7)';
-  });
-  const forecastColors=forecastPts.map(()=>'rgba(55,138,221,0.2)');
-  const allColors=[...actualColors,...forecastColors];
 
   barInst=new Chart(document.getElementById('barChart'),{
     type:'bar',
@@ -547,22 +622,41 @@ function buildBarChart(snaps){
       labels,
       datasets:[
         {
-          label:'Net worth',
-          data:actualData,
-          backgroundColor:actualColors,
+          label:'Long-term cash',
+          data:cashData,
+          backgroundColor:'rgba(180,178,169,0.75)', // warm gray
+          borderRadius:0,
+          borderSkipped:false,
+          stack:'actual',
+          order:2
+        },
+        {
+          label:'Tax-advantaged',
+          data:taxData,
+          backgroundColor:'rgba(55,138,221,0.75)', // blue
+          borderRadius:0,
+          borderSkipped:false,
+          stack:'actual',
+          order:2
+        },
+        {
+          label:'After-tax brokerage',
+          data:brokData,
+          backgroundColor:'rgba(29,158,117,0.80)', // green
           borderRadius:3,
           borderSkipped:false,
+          stack:'actual',
           order:2
         },
         {
           label:'Forecast',
           data:hasForecast?forecastData:Array(allPts.length).fill(null),
-          backgroundColor:'rgba(55,138,221,0.18)',
-          borderColor:'rgba(55,138,221,0.5)',
+          backgroundColor:'rgba(55,138,221,0.15)',
+          borderColor:'rgba(55,138,221,0.4)',
           borderWidth:1,
           borderRadius:3,
           borderSkipped:false,
-          borderDash:[4,2],
+          stack:'forecast',
           order:1
         }
       ]
@@ -570,17 +664,45 @@ function buildBarChart(snaps){
     options:{
       responsive:true,maintainAspectRatio:false,
       plugins:{
-        legend:{display:false},
-        tooltip:{callbacks:{
-          label:ctx=>{
-            const isForecast=ctx.datasetIndex===1;
-            return(isForecast?' Forecast: ':' Actual: ')+fmt(ctx.parsed.y);
+        legend:{
+          display:true,
+          position:'top',
+          align:'start',
+          labels:{
+            color:tickC,
+            font:{size:10},
+            boxWidth:10,
+            boxHeight:10,
+            padding:12,
+            filter:item=>item.text!=='Forecast'
           }
-        }}
+        },
+        tooltip:{
+          callbacks:{
+            label:ctx=>{
+              if(ctx.dataset.label==='Forecast')return' Forecast: '+fmt(ctx.parsed.y);
+              return' '+ctx.dataset.label+': '+fmt(ctx.parsed.y);
+            },
+            footer:items=>{
+              const actual=items.filter(i=>i.dataset.stack==='actual');
+              if(actual.length<2)return'';
+              const total=actual.reduce((s,i)=>s+(i.parsed.y||0),0);
+              return'Total: '+fmt(total);
+            }
+          }
+        }
       },
       scales:{
-        x:{grid:{display:false},ticks:{color:tickC,font:{size:9},maxRotation:45,autoSkip:true,maxTicksLimit:10}},
-        y:{grid:{color:gridC},ticks:{color:tickC,font:{size:9},callback:v=>fmtS(v)}}
+        x:{
+          stacked:true,
+          grid:{display:false},
+          ticks:{color:tickC,font:{size:9},maxRotation:45,autoSkip:true,maxTicksLimit:10}
+        },
+        y:{
+          stacked:true,
+          grid:{color:gridC},
+          ticks:{color:tickC,font:{size:9},callback:v=>fmtS(v)}
+        }
       }
     }
   });
@@ -855,6 +977,175 @@ function buildAMDChart(){
   document.getElementById('rsu-aftertax-total').textContent=fmtS(aftertaxTot);
 }
 
+
+/* ══════════════════════════════════════
+   URA ETF HISTORICAL DATA + FORECAST
+══════════════════════════════════════ */
+const URA_HISTORY=[
+  {d:"2021-01-01",p:16.20},{d:"2021-02-01",p:17.85},{d:"2021-03-01",p:17.10},
+  {d:"2021-04-01",p:18.40},{d:"2021-05-01",p:19.20},{d:"2021-06-01",p:20.50},
+  {d:"2021-07-01",p:22.80},{d:"2021-08-01",p:24.60},{d:"2021-09-01",p:26.90},
+  {d:"2021-10-01",p:28.40},{d:"2021-11-01",p:27.10},{d:"2021-12-01",p:25.55},
+  {d:"2022-01-01",p:26.80},{d:"2022-02-01",p:25.40},{d:"2022-03-01",p:27.60},
+  {d:"2022-04-01",p:25.10},{d:"2022-05-01",p:23.80},{d:"2022-06-01",p:21.40},
+  {d:"2022-07-01",p:22.90},{d:"2022-08-01",p:24.50},{d:"2022-09-01",p:22.10},
+  {d:"2022-10-01",p:21.80},{d:"2022-11-01",p:23.40},{d:"2022-12-01",p:22.66},
+  {d:"2023-01-01",p:23.80},{d:"2023-02-01",p:24.60},{d:"2023-03-01",p:25.90},
+  {d:"2023-04-01",p:26.40},{d:"2023-05-01",p:27.10},{d:"2023-06-01",p:28.50},
+  {d:"2023-07-01",p:29.80},{d:"2023-08-01",p:28.60},{d:"2023-09-01",p:30.40},
+  {d:"2023-10-01",p:29.90},{d:"2023-11-01",p:31.80},{d:"2023-12-01",p:33.17},
+  {d:"2024-01-01",p:34.20},{d:"2024-02-01",p:35.80},{d:"2024-03-01",p:34.60},
+  {d:"2024-04-01",p:32.40},{d:"2024-05-01",p:31.80},{d:"2024-06-01",p:30.90},
+  {d:"2024-07-01",p:29.40},{d:"2024-08-01",p:28.60},{d:"2024-09-01",p:29.80},
+  {d:"2024-10-01",p:28.90},{d:"2024-11-01",p:30.40},{d:"2024-12-01",p:32.99},
+  {d:"2025-01-01",p:34.50},{d:"2025-02-01",p:36.80},{d:"2025-03-01",p:38.40},
+  {d:"2025-04-01",p:36.90},{d:"2025-05-01",p:39.20},{d:"2025-06-01",p:42.80},
+  {d:"2025-07-01",p:45.60},{d:"2025-08-01",p:48.90},{d:"2025-09-01",p:51.20},
+  {d:"2025-10-01",p:53.80},{d:"2025-11-01",p:55.10},{d:"2025-12-01",p:55.18},
+  {d:"2026-01-01",p:52.40},{d:"2026-02-01",p:48.60},{d:"2026-03-01",p:45.20},
+  {d:"2026-04-01",p:33.10}
+];
+
+let uraChartInst=null;
+let uraChartBuilt=false;
+
+function buildURAChart(){
+  if(uraChartBuilt)return;
+  uraChartBuilt=true;
+
+  const reg=amdExpRegression(URA_HISTORY); // reuse same regression fn
+  const blendedSD=reg.stdDev*0.5; // tighter band for ETF
+
+  // Fetch live URA price
+  fetch('https://query1.finance.yahoo.com/v8/finance/chart/URA')
+    .then(r=>r.json())
+    .then(d=>{
+      const p=d?.chart?.result?.[0]?.meta?.regularMarketPrice;
+      if(p){
+        document.getElementById('ura-price').textContent='$'+p.toFixed(2);
+        window._uraLivePrice=p;
+        updateURAPanel();
+      }
+    }).catch(()=>{
+      window._uraLivePrice=33.10;
+      document.getElementById('ura-price').textContent='$33.10';
+      updateURAPanel();
+    });
+
+  // Build forecast to 2030
+  const lastDate=new Date(URA_HISTORY[URA_HISTORY.length-1].d);
+  const forecastEnd=new Date('2030-12-01');
+  const forecastPts=[];
+  let fd=new Date(lastDate);
+  fd.setMonth(fd.getMonth()+1);
+  while(fd<=forecastEnd){
+    const iso=fd.toISOString().substring(0,10);
+    const x=(fd.getTime()-reg.t0)/(1000*60*60*24*30.44);
+    const base=reg.a*Math.exp(reg.b*x);
+    const bear=base*Math.exp(-blendedSD);
+    const bull=base*Math.exp(blendedSD);
+    forecastPts.push({d:iso,base:Math.round(base*100)/100,bear:Math.round(bear*100)/100,bull:Math.round(bull*100)/100});
+    fd.setMonth(fd.getMonth()+1);
+  }
+
+  const allLabels=[...URA_HISTORY.map(h=>h.d.substring(0,7)),...forecastPts.map(p=>p.d.substring(0,7))];
+  const histData=URA_HISTORY.map(h=>h.p);
+  const forecastBase=[...Array(URA_HISTORY.length-1).fill(null),URA_HISTORY[URA_HISTORY.length-1].p,...forecastPts.map(p=>p.base)];
+  const forecastBull=[...Array(URA_HISTORY.length-1).fill(null),URA_HISTORY[URA_HISTORY.length-1].p,...forecastPts.map(p=>p.bull)];
+  const forecastBear=[...Array(URA_HISTORY.length-1).fill(null),URA_HISTORY[URA_HISTORY.length-1].p,...forecastPts.map(p=>p.bear)];
+
+  // Store forecast points for projection table
+  window._uraForecastPts=forecastPts;
+  window._uraReg=reg;
+  window._uraBlendedSD=blendedSD;
+
+  if(uraChartInst)uraChartInst.destroy();
+  uraChartInst=new Chart(document.getElementById('uraChart'),{
+    type:'line',
+    data:{
+      labels:allLabels,
+      datasets:[
+        {label:'Bull band',data:forecastBull,borderColor:'transparent',backgroundColor:'rgba(29,158,117,0.08)',fill:'+1',tension:0.3,borderWidth:0,pointRadius:0},
+        {label:'Historical',data:[...histData,...Array(forecastPts.length).fill(null)],borderColor:'#B4B2A9',backgroundColor:'rgba(180,178,169,0.05)',fill:true,tension:0.3,borderWidth:1.5,pointRadius:0},
+        {label:'Base forecast',data:forecastBase,borderColor:'#1D9E75',backgroundColor:'transparent',fill:false,tension:0.3,borderWidth:2,pointRadius:0,borderDash:[5,3]},
+        {label:'Bear band',data:forecastBear,borderColor:'transparent',backgroundColor:'rgba(29,158,117,0.08)',fill:false,tension:0.3,borderWidth:0,pointRadius:0},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>{if(ctx.dataset.label.includes('band'))return null;return' '+ctx.dataset.label+': $'+ctx.parsed.y.toFixed(2);}}}},
+      scales:{
+        x:{grid:{color:gridC},ticks:{color:tickC,font:{size:9},maxTicksLimit:12,autoSkip:true}},
+        y:{grid:{color:gridC},ticks:{color:tickC,font:{size:9},callback:v=>'$'+v.toFixed(0)}}
+      }
+    }
+  });
+
+  updateURAPanel();
+}
+
+function updateURAPanel(){
+  const shares=parseFloat(document.getElementById('ura-shares')?.value)||653;
+  const basis=parseFloat(document.getElementById('ura-basis')?.value)||33.10;
+  const divYield=(parseFloat(document.getElementById('ura-yield')?.value)||3.76)/100;
+  const drip=document.getElementById('ura-drip')?.checked!==false;
+  const livePrice=window._uraLivePrice||33.10;
+
+  const cost=shares*basis;
+  const value=shares*livePrice;
+  const gain=value-cost;
+  const gainPct=((gain/cost)*100);
+
+  const setEl=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  setEl('ura-price','$'+livePrice.toFixed(2));
+  setEl('ura-value',fmt(value));
+  setEl('ura-cost',fmt(cost));
+  const gainEl=document.getElementById('ura-gain');
+  if(gainEl){
+    gainEl.textContent=(gain>=0?'+':'')+fmt(gain)+' ('+(gainPct>=0?'+':'')+gainPct.toFixed(1)+'%)';
+    gainEl.className='eq-val '+(gain>=0?'pos':'neg');
+  }
+
+  // Build projection table
+  if(!window._uraForecastPts)return;
+  const years=[2027,2028,2029,2030];
+  const colHeader=document.getElementById('ura-drip-col-header');
+  if(colHeader)colHeader.textContent=drip?'Shares w/ DRIP':'Annual dividend';
+
+  let html='';
+  let currentShares=shares;
+  years.forEach(yr=>{
+    const dateStr=yr+'-12-01';
+    const pt=window._uraForecastPts.find(p=>p.d.startsWith(yr+'-12'))||window._uraForecastPts[window._uraForecastPts.length-1];
+    if(!pt)return;
+
+    // DRIP: each year dividends buy more shares at base price
+    if(drip&&yr>2026){
+      const annualDivPerShare=pt.base*divYield;
+      const newShares=(currentShares*annualDivPerShare)/pt.base;
+      currentShares+=newShares;
+    }
+
+    const baseVal=currentShares*pt.base;
+    const bearVal=currentShares*pt.bear;
+    const bullVal=currentShares*pt.bull;
+    const annualDiv=drip
+      ? fmtS(currentShares)+' shares'
+      : fmt(currentShares*pt.base*divYield);
+
+    html+=`<tr>
+      <td>${yr}</td>
+      <td>$${pt.bear.toFixed(0)}</td>
+      <td>$${pt.base.toFixed(0)}</td>
+      <td>$${pt.bull.toFixed(0)}</td>
+      <td>${fmtS(baseVal)}</td>
+      <td>${annualDiv}</td>
+    </tr>`;
+  });
+  const tbody=document.getElementById('ura-proj-tbody');
+  if(tbody)tbody.innerHTML=html;
+}
+
 /* ── LOAD DATA ── */
 async function loadData(){
   try{
@@ -875,10 +1166,11 @@ async function loadData(){
       const k401=toNum(r['Fidelity 401k']||r.fidelity_401k);
       const wf_brok=toNum(r['WF Joint Brokerage']||r.wf_brokerage);
       const etrade=toNum(r['eTrade (Vested RSUs)']||r.etrade_vested);
-      const total=wf_cash+cap1+wf_ira+roth+k401+wf_brok+etrade;
+      const ura=toNum(r['URA ETF']||r.ura_etf||0);
+      const total=wf_cash+cap1+wf_ira+roth+k401+wf_brok+etrade+ura;
       let date=String(r['Date']||r.date||'');
       if(date.length>10)date=date.substring(0,10);
-      return{date,total,wf_cash,cap1,wf_ira,roth,k401,wf_brok,etrade};
+      return{date,total,wf_cash,cap1,wf_ira,roth,k401,wf_brok,etrade,ura};
     }).filter(s=>s.total>0&&s.date);
 
     if(!snaps.length){document.getElementById('status-txt').textContent='No valid rows found';return;}
@@ -889,7 +1181,7 @@ async function loadData(){
     document.getElementById('m-total').textContent=fmt(latest.total);
     document.getElementById('m-cash').textContent=fmt(latest.wf_cash+latest.cap1);
     document.getElementById('m-tax').textContent=fmt(latest.wf_ira+latest.roth+latest.k401);
-    document.getElementById('m-brok').textContent=fmt(latest.wf_brok+latest.etrade);
+    document.getElementById('m-brok').textContent=fmt((latest.wf_brok||0)+(latest.etrade||0)+(latest.ura||0));
     document.getElementById('last-updated').textContent='Live · '+new Date().toLocaleDateString();
     document.getElementById('entry-count').textContent=snaps.length+' entries';
     document.getElementById('sub-count').textContent=snaps.length+' / '+FORECAST_FULL;
@@ -917,12 +1209,13 @@ function prefillForm(){
   document.getElementById('f-401k').value=l.k401||'';
   document.getElementById('f-wf-brok').value=l.wf_brok||'';
   document.getElementById('f-etrade').value=l.etrade||'';
+  document.getElementById('f-ura').value=l.ura||'';
   updateFormTotal();
   document.getElementById('last-entry-info').innerHTML='Last entry: <strong>'+l.date+'</strong> · <strong>'+fmt(l.total)+'</strong>';
 }
 
 function updateFormTotal(){
-  const ids=['f-wf-cash','f-cap1','f-wf-ira','f-roth','f-401k','f-wf-brok','f-etrade'];
+  const ids=['f-wf-cash','f-cap1','f-wf-ira','f-roth','f-401k','f-wf-brok','f-etrade','f-ura'];
   const total=ids.reduce((s,id)=>s+(parseFloat(document.getElementById(id).value)||0),0);
   document.getElementById('form-total').textContent=fmt(total);
 }
@@ -941,6 +1234,7 @@ async function submitEntry(){
     fidelity_401k:parseFloat(document.getElementById('f-401k').value)||0,
     wf_brokerage:parseFloat(document.getElementById('f-wf-brok').value)||0,
     etrade_vested:parseFloat(document.getElementById('f-etrade').value)||0,
+    ura_etf:parseFloat(document.getElementById('f-ura').value)||0,
   };
   try{
     await fetch(SCRIPT_URL+'?action=submit&data='+encodeURIComponent(JSON.stringify(entry)));
